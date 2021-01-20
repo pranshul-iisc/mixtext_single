@@ -5,28 +5,18 @@ import math
 
 import numpy as np
 import torch
+import pandas as pd
+import pickle
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as Data
+from torch.utils.data import Dataset
 from pytorch_transformers import *
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 from transformers.modeling_bert import BertEmbeddings, BertPooler, BertLayer
 
 from tqdm import tqdm
-
-#from read_data import *
-#from mixtext import MixText
-
-
-import numpy as np
-import pandas as pd
-import torch
-from torch.utils.data import Dataset
-from pytorch_transformers import *
-import torch.utils.data as Data
-import pickle
-
 
 class BertModel4Mix(BertPreTrainedModel):
     def __init__(self, config):
