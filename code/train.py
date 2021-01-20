@@ -267,7 +267,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
     # Build the dataset class for each set
     train_labeled_dataset = loader_labeled(
-        train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len, train_aug)
+        train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len)
     train_unlabeled_dataset = loader_unlabeled(
         train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Translator(data_path))
     val_dataset = loader_labeled(
@@ -282,12 +282,13 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
 class loader_labeled(Dataset):
     # Data loader for labeled data
-    def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len, aug=False):
+    def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len):
         self.tokenizer = tokenizer
         self.text = dataset_text
         self.labels = dataset_label
         self.max_seq_len = max_seq_len
         self.trans_dist = {}
+        self.aug = False
 
     def __len__(self):
         return len(self.labels)
