@@ -20,9 +20,11 @@ class Translator:
             self.ru = pickle.load(f)
 
     def __call__(self, ori, idx):
-        out1 = self.de[idx]
-        out2 = self.ru[idx]
-        return out1, out2, ori
+        if (idx in self.de):
+            out1 = self.de[idx]
+            out2 = self.ru[idx]
+            return out1, out2, ori
+        return ori, ori, ori
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False):
     """Read data, split the dataset, and build dataset for dataloaders.
@@ -45,8 +47,8 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     test_df = pd.read_csv(data_path+'test.csv', header=None)
 
     # Here we only use the bodies and removed titles to do the classifications
-    train_labels = np.array([v-1 for v in train_df[0]])
-    train_text = np.array([v for v in train_df[2]])
+    train_labels = np.array([train_df[0][i] - 1 for i in range(200000)])  # [v-1 for v in train_df[0]]
+    train_text = np.array([train_df[2][i] for i in range(200000)])  # ([v for v in train_df[2]])
 
     test_labels = np.array([u-1 for u in test_df[0]])
     test_text = np.array([v for v in test_df[2]])
