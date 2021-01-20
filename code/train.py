@@ -11,6 +11,7 @@ import torch.utils.data as Data
 from pytorch_transformers import *
 from torch.autograd import Variable
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 #from read_data import *
 from mixtext import MixText
@@ -24,6 +25,35 @@ from pytorch_transformers import *
 import torch.utils.data as Data
 import pickle
 
+
+class MixText(nn.Module):
+    def __init__(self, num_labels=2, mix_option=False):
+        super(MixText, self).__init__()
+
+        if mix_option:
+            self.bert = BertModel4Mix.from_pretrained('bert-base-uncased')
+        else:
+            self.bert = BertModel.from_pretrained('bert-base-uncased')
+
+        self.linear = nn.Sequential(nn.Linear(768, 128),
+                                    nn.Tanh(),
+                                    nn.Linear(128, num_labels))
+
+    def forward(self, x, x2=None, l=None, mix_layer=1000):
+
+        if x2 is not None:
+            all_hidden, pooler = self.bert(x, x2, l, mix_layer)
+
+            pooled_output = torch.mean(all_hidden, 1)
+
+        else:
+            all_hidden, pooler = self.bert(x)
+
+            pooled_output = torch.mean(all_hidden, 1)
+
+        predict = self.linear(pooled_output)
+
+        return predict
 
 class Translator:
     """Backtranslation. Here to save time, we pre-processing and save all the translated data into pickle files.
@@ -404,7 +434,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         args.T = 0.9
         flag = 1
 
-    for batch_idx in range(args.val_iteration):
+    for batch_idx in tqdm(range(args.val_iteration)):
 
         total_steps += 1
 
