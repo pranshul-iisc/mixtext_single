@@ -250,7 +250,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     # Split the labeled training set, unlabeled training set, development set
     #train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
     #    train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
-    np.random.seed(seed)
+    np.random.seed(0)
     labels = np.array(labels)
     train_labeled_idxs = []
     train_unlabeled_idxs = []
