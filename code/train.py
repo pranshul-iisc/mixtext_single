@@ -280,29 +280,6 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
     return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
 
-
-def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
-    np.random.seed(seed)
-    labels = np.array(labels)
-    train_labeled_idxs = []
-    train_unlabeled_idxs = []
-    val_idxs = []
-
-    for i in range(n_labels):
-            idxs = np.where(labels == i)[0]
-            np.random.shuffle(idxs)
-            train_pool = np.concatenate((idxs[:500], idxs[5500:-6000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + 5000])
-            val_idxs.extend(idxs[-6000:])
-    np.random.shuffle(train_labeled_idxs)
-    np.random.shuffle(train_unlabeled_idxs)
-    np.random.shuffle(val_idxs)
-
-    return train_labeled_idxs, train_unlabeled_idxs, val_idxs
-
-
 class loader_labeled(Dataset):
     # Data loader for labeled data
     def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len, aug=False):
@@ -310,16 +287,7 @@ class loader_labeled(Dataset):
         self.text = dataset_text
         self.labels = dataset_label
         self.max_seq_len = max_seq_len
-
-        self.aug = aug
         self.trans_dist = {}
-
-        if aug:
-            print('Aug train data by back translation of German')
-            self.en2de = torch.hub.load(
-                'pytorch/fairseq', 'transformer.wmt19.en-de.single_model', tokenizer='moses', bpe='fastbpe')
-            self.de2en = torch.hub.load(
-                'pytorch/fairseq', 'transformer.wmt19.de-en.single_model', tokenizer='moses', bpe='fastbpe')
 
     def __len__(self):
         return len(self.labels)
