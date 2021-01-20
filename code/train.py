@@ -248,8 +248,25 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     n_labels = max(test_labels) + 1
 
     # Split the labeled training set, unlabeled training set, development set
-    train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
-        train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+    #train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
+    #    train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+    np.random.seed(seed)
+    labels = np.array(labels)
+    train_labeled_idxs = []
+    train_unlabeled_idxs = []
+    val_idxs = []
+
+    for i in range(n_labels):
+        idxs = np.where(labels == i)[0]
+        np.random.shuffle(idxs)
+        train_pool = np.concatenate((idxs[:500], idxs[5500:-6000]))
+        train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
+        train_unlabeled_idxs.extend(
+            idxs[500: 500 + 5000])
+        val_idxs.extend(idxs[-6000:])
+    np.random.shuffle(train_labeled_idxs)
+    np.random.shuffle(train_unlabeled_idxs)
+    np.random.shuffle(val_idxs)
 
     # Build the dataset class for each set
     train_labeled_dataset = loader_labeled(
@@ -268,20 +285,6 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
 
 def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
-    """Split the original training set into labeled training set, unlabeled training set, development set
-
-    Arguments:
-        labels {list} -- List of labeles for original training set
-        n_labeled_per_class {int} -- Number of labeled data per class
-        unlabeled_per_class {int} -- Number of unlabeled data per class
-        n_labels {int} -- The number of classes
-
-    Keyword Arguments:
-        seed {int} -- [random seed of np.shuffle] (default: {0})
-
-    Returns:
-        [list] -- idx for labeled training set, unlabeled training set, development set
-    """
     np.random.seed(seed)
     labels = np.array(labels)
     train_labeled_idxs = []
@@ -289,29 +292,13 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
     val_idxs = []
 
     for i in range(n_labels):
-        idxs = np.where(labels == i)[0]
-        np.random.shuffle(idxs)
-        if n_labels == 2:
-            # IMDB
-            train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
+            idxs = np.where(labels == i)[0]
+            np.random.shuffle(idxs)
+            train_pool = np.concatenate((idxs[:500], idxs[5500:-6000]))
             train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
             train_unlabeled_idxs.extend(
                 idxs[500: 500 + 5000])
-            val_idxs.extend(idxs[-2000:])
-        elif n_labels == 10:
-            # DBPedia
-            train_pool = np.concatenate((idxs[:500], idxs[10500:-2000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + unlabeled_per_class])
-            val_idxs.extend(idxs[-2000:])
-        else:
-            # Yahoo/AG News
-            train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + 5000])
-            val_idxs.extend(idxs[-2000:])
+            val_idxs.extend(idxs[-6000:])
     np.random.shuffle(train_labeled_idxs)
     np.random.shuffle(train_unlabeled_idxs)
     np.random.shuffle(val_idxs)
