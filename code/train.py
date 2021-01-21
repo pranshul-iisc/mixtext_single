@@ -215,8 +215,8 @@ class Translator:
         if (idx in self.de):
             out1 = self.de[idx]
             out2 = self.ru[idx]
-            return out1, out2, ori
-        return ori, ori, ori
+            return out1, out2, ori ,idx
+        return ori, ori, ori, idx
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False):
 
@@ -530,11 +530,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                 (inputs_x, inputs_x_aug), (targets_x, _), (inputs_x_length,
                                                            inputs_x_length_aug) = labeled_train_iter.next()
         try:
-            (inputs_u, inputs_u2,  inputs_ori), (length_u,
+            (inputs_u, inputs_u2,  inputs_ori, u_idxs), (length_u,
                                                  length_u2,  length_ori) = unlabeled_train_iter.next()
         except:
             unlabeled_train_iter = iter(unlabeled_trainloader)
-            (inputs_u, inputs_u2, inputs_ori), (length_u,
+            (inputs_u, inputs_u2, inputs_ori, u_idxs), (length_u,
                                                 length_u2, length_ori) = unlabeled_train_iter.next()
 
         batch_size = inputs_x.size(0)
