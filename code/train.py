@@ -618,11 +618,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             idx2 = torch.arange(batch_size_2) + \
                 all_inputs.size(0) - batch_size_2
             idx = torch.cat([idx1, idx2], dim=0)
-
+        print("Indexes  are",idx1,idx2,idx)
         input_a, input_b = all_inputs, all_inputs[idx]
         target_a, target_b = all_targets, all_targets[idx]
         length_a, length_b = all_lengths, all_lengths[idx]
-
+        print("input a,b",input_a,input_b)
         if args.mix_method == 0:
             # Mix sentences' hidden representations
             logits = model(input_a, input_b, l, mix_layer)
