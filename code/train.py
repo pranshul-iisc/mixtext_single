@@ -431,11 +431,11 @@ def main():
     global de_flowgmm_lbls
     global ru_flowgmm_lbls
     global ori_flowgmm_lbls
-    with open(args.data_path + "../..flowgmm-labels-for-yahoo/" + 'de_flowgmm_labels.pkl', 'rb') as f:
+    with open("../..flowgmm-labels-for-yahoo/" + 'de_flowgmm_labels.pkl', 'rb') as f:
         de_flowgmm_lbls = pickle.load(f)
-    with open(args.data_path + "../..flowgmm-labels-for-yahoo/"  + 'ru_flowgmm_labels.pkl', 'rb') as f:
+    with open("../..flowgmm-labels-for-yahoo/"  + 'ru_flowgmm_labels.pkl', 'rb') as f:
         ru_flowgmm_lbls = pickle.load(f)
-    with open(args.data_path + "../..flowgmm-labels-for-yahoo/"  + 'ori_flowgmm_labels.pkl', 'rb') as f:
+    with open("../..flowgmm-labels-for-yahoo/"  + 'ori_flowgmm_labels.pkl', 'rb') as f:
         ori_flowgmm_lbls = pickle.load(f)
 
     # Read dataset and build dataloaders
