@@ -568,7 +568,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_ori = inputs_ori.cuda()
 
         out_u = [(de_flowgmm_lbls[idx] if idx in de_flowgmm_lbls else -1)  for idx in u_idxs]
-
+        for idx in u_idxs:
+            print(idx)
         print("LAbels", len(de_flowgmm_lbls),de_flowgmm_lbls[420562], out_u)
         mask = []
 
