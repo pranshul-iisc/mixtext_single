@@ -219,21 +219,7 @@ class Translator:
         return ori, ori, ori
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False):
-    """Read data, split the dataset, and build dataset for dataloaders.
-
-    Arguments:
-        data_path {str} -- Path to your dataset folder: contain a train.csv and test.csv
-        n_labeled_per_class {int} -- Number of labeled data per class
-
-    Keyword Arguments:
-        unlabeled_per_class {int} -- Number of unlabeled data per class (default: {5000})
-        max_seq_len {int} -- Maximum sequence length (default: {256})
-        model {str} -- Model name (default: {'bert-base-uncased'})
-        train_aug {bool} -- Whether performing augmentation on labeled training set (default: {False})
-
-    """
-    # Load the tokenizer for bert
-    tokenizer = BertTokenizer.from_pretrained(model)
+   tokenizer = BertTokenizer.from_pretrained(model)
 
     train_df = pd.read_csv(data_path+'train.csv', header=None)
     test_df = pd.read_csv(data_path+'test.csv', header=None)
@@ -292,12 +278,6 @@ class loader_labeled(Dataset):
 
     def __len__(self):
         return len(self.labels)
-
-    def augment(self, text):
-        if text not in self.trans_dist:
-            self.trans_dist[text] = self.de2en.translate(self.en2de.translate(
-                text,  sampling=True, temperature=0.9),  sampling=True, temperature=0.9)
-        return self.trans_dist[text]
 
     def get_tokenized(self, text):
         tokens = self.tokenizer.tokenize(text)
