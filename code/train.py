@@ -606,7 +606,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
 
-        print("all inputs size:",all_inputs.shape)
+        print("all inputs size:",all_inputs.shape,all_lengths.shape,all_targets.shape)
 
         if args.separate_mix:
             idx1 = torch.randperm(batch_size)
