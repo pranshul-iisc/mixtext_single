@@ -219,8 +219,8 @@ class Translator:
         return ori, ori, ori
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False):
-   tokenizer = BertTokenizer.from_pretrained(model)
 
+    tokenizer = BertTokenizer.from_pretrained(model)
     train_df = pd.read_csv(data_path+'train.csv', header=None)
     test_df = pd.read_csv(data_path+'test.csv', header=None)
 
