@@ -422,9 +422,19 @@ flag = 0
 print('Whether mix: ', args.mix_option)
 print("Mix layers sets: ", args.mix_layers_set)
 
+de_flowgmm_lbls ={}
+ru_flowgmm_lbls ={}
+ori_flowgmm_lbls ={}
 
 def main():
     global best_acc
+    with open(args.data_path + 'de_flowgmm_labels.pkl', 'rb') as f:
+        global de_flowgmm_lbls = pickle.load(f)
+    with open(args.data_path + 'ru_flowgmm_labels.pkl', 'rb') as f:
+        global ru_flowgmm_lbls = pickle.load(f)
+    with open(args.data_path + 'ori_flowgmm_labels.pkl', 'rb') as f:
+        global ori_flowgmm_lbls = pickle.load(f)
+
     # Read dataset and build dataloaders
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
         args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug)
@@ -549,6 +559,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
+        print("LAbels",global de_flowgmm_lbls[u_idxs])
         mask = []
 
         with torch.no_grad():
