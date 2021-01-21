@@ -542,7 +542,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
             1, targets_x.view(-1, 1), 1)
 
-        print("sizes",inputs_x.size, inputs_u.size,inputs_u2.size,inputs_ori.size)
+        print("sizes",inputs_x.shape, inputs_u.shape,inputs_u2.shape,inputs_ori.shape)
 
         inputs_x, targets_x = inputs_x.cuda(), targets_x.cuda(non_blocking=True)
         inputs_u = inputs_u.cuda()
@@ -606,7 +606,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
 
-        print("all inputs size:",all_inputs.size)
+        print("all inputs size:",all_inputs.shape)
 
         if args.separate_mix:
             idx1 = torch.randperm(batch_size)
