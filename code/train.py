@@ -567,8 +567,9 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
-        out_u = [de_flowgmm_lbls[idx] if idx in de_flowgmm_lbls else -1  for idx in u_idxs]
-        print("LAbels", len(de_flowgmm_lbls), out_u)
+        out_u = [(de_flowgmm_lbls[idx] if idx in de_flowgmm_lbls else -1)  for idx in u_idxs]
+
+        print("LAbels", len(de_flowgmm_lbls),de_flowgmm_lbls[420562], out_u)
         mask = []
 
         with torch.no_grad():
@@ -644,7 +645,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         target_a, target_b = all_targets, all_targets[idx]
         length_a, length_b = all_lengths, all_lengths[idx]
         print("input a,b",input_a.shape,input_b.shape)
-        
+
         if args.mix_method == 0:
             # Mix sentences' hidden representations
             logits = model(input_a, input_b, l, mix_layer)
