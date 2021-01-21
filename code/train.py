@@ -431,7 +431,7 @@ def main():
     global de_flowgmm_lbls
     global ru_flowgmm_lbls
     global ori_flowgmm_lbls
-    dat_p ="../../flowgmm-labels-for-yahoo/"
+    dat_p ="../../input/flowgmm-labels-for-yahoo/"
     with open(dat_p + 'de_flowgmm_labels.pkl', 'rb') as f:
         de_flowgmm_lbls = pickle.load(f)
     with open(dat_p  + 'ru_flowgmm_labels.pkl', 'rb') as f:
