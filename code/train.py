@@ -556,7 +556,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs_u = model(inputs_u)
             outputs_u2 = model(inputs_u2)
             outputs_ori = model(inputs_ori)
-            print("output:",type(outputs_u), outputs_u.shape)
+            print("output:",type(outputs_u), outputs_u.shape, outputs_u)
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
             # For DBPedia: German: 1, Russian: 1, ori: 1
