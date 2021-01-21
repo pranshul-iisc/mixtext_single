@@ -556,7 +556,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs_u = model(inputs_u)
             outputs_u2 = model(inputs_u2)
             outputs_ori = model(inputs_ori)
-
+            print("output:",type(output_u), output.shape)
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
             # For DBPedia: German: 1, Russian: 1, ori: 1
@@ -628,7 +628,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             # Mix sentences' hidden representations
             logits = model(input_a, input_b, l, mix_layer)
             mixed_target = l * target_a + (1 - l) * target_b
-        if(True):    u_idxs
+
         elif args.mix_method == 1:
             # Concat snippet of two training sentences, the snippets are selected based on l
             # For example: "I lova you so much" and "He likes NLP" could be mixed as "He likes NLP so much".
