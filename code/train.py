@@ -542,7 +542,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
             1, targets_x.view(-1, 1), 1)
 
-        print("sizes",inputs_x.shape, inputs_u.shape,inputs_u2.shape,inputs_ori.shape)
+        print("sizes",inputs_x.shape, inputs_u.shape,inputs_u2.shape,inputs_ori.shape, u_idxs)
 
         inputs_x, targets_x = inputs_x.cuda(), targets_x.cuda(non_blocking=True)
         inputs_u = inputs_u.cuda()
