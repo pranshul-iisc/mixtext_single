@@ -567,7 +567,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
-        print("LAbels", de_flowgmm_lbls[u_idxs])
+        out_u = [de_flowgmm_lbls[idx] if idx in de_flowgmm_lbls else -1  for idx in u_idxs]
+        print("LAbels", out_u)
         mask = []
 
         with torch.no_grad():
