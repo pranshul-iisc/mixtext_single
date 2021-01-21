@@ -428,12 +428,15 @@ ori_flowgmm_lbls ={}
 
 def main():
     global best_acc
+    global de_flowgmm_lbls
+    global ru_flowgmm_lbls
+    global ori_flowgmm_lbls
     with open(args.data_path + 'de_flowgmm_labels.pkl', 'rb') as f:
-        global de_flowgmm_lbls = pickle.load(f)
+        de_flowgmm_lbls = pickle.load(f)
     with open(args.data_path + 'ru_flowgmm_labels.pkl', 'rb') as f:
-        global ru_flowgmm_lbls = pickle.load(f)
+        ru_flowgmm_lbls = pickle.load(f)
     with open(args.data_path + 'ori_flowgmm_labels.pkl', 'rb') as f:
-        global ori_flowgmm_lbls = pickle.load(f)
+        ori_flowgmm_lbls = pickle.load(f)
 
     # Read dataset and build dataloaders
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
@@ -514,6 +517,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
     unlabeled_train_iter = iter(unlabeled_trainloader)
     model.train()
 
+    global de_flowgmm_lbls
+    global ru_flowgmm_lbls
+    global ori_flowgmm_lbls
+
     global total_steps
     global flag
     if flag == 0 and total_steps > args.temp_change:
@@ -559,7 +566,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
-        print("LAbels",global de_flowgmm_lbls[u_idxs])
+        print("LAbels", de_flowgmm_lbls[u_idxs])
         mask = []
 
         with torch.no_grad():
