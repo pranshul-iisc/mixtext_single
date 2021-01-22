@@ -588,7 +588,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs = [[(1 if j ==i else 0) for j in range(10)] for i in out_u]
             outputs = torch.FloatTensor(outputs)
             print("output2:", type(outputs), outputs.shape, outputs)
-            #outputs_u = outputs
+            outputs_u = outputs
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
             # For DBPedia: German: 1, Russian: 1, ori: 1
