@@ -584,7 +584,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs_u = model(inputs_u)
             outputs_u2 = model(inputs_u2)
             outputs_ori = model(inputs_ori)
-            print("output:",type(outputs_u), outputs_u.shape, outputs_u)
+            print("output:",type(outputs_u), outputs_u.shape, out_u)
             outputs = [[(1 if j ==i else 0) for j in range(10)] for i in outputs_u]
             outputs = torch.FloatTensor(outputs)
             print("output2:", type(outputs), outputs.shape, outputs)
