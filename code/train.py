@@ -567,7 +567,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
-        out_u = [(de_flowgmm_lbls[idx.item()] if idx.item() in de_flowgmm_lbls else -1)  for idx in u_idxs]
+        out_u = [(de_flowgmm_lbls[idx.item()] if idx.item() in de_flowgmm_lbls else random.randint(0,9))  for idx in
+                 u_idxs]
+        out_u2 = [(ru_flowgmm_lbls[idx.item()] if idx.item() in ru_flowgmm_lbls else random.randint(0, 9)) for idx in
+                 u_idxs]
+        out_ori = [(ori_flowgmm_lbls[idx.item()] if idx.item() in ori_flowgmm_lbls else random.randint(0, 9)) for idx in
+                 u_idxs]
+
         for idx in u_idxs:
             print(idx.item())
         print("LAbels", len(de_flowgmm_lbls),de_flowgmm_lbls[420562], out_u)
@@ -579,6 +585,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs_u2 = model(inputs_u2)
             outputs_ori = model(inputs_ori)
             print("output:",type(outputs_u), outputs_u.shape, outputs_u)
+            outputs = torch.FloatTensor(out_u)
+            print("output2:", type(outputs), outputs.shape, outputs)
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
             # For DBPedia: German: 1, Russian: 1, ori: 1
