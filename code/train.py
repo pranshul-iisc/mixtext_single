@@ -796,4 +796,75 @@ class SemiLoss(object):
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    global best_acc
+    global de_flowgmm_lbls
+    global ru_flowgmm_lbls
+    global ori_flowgmm_lbls
+    dat_p = "../../input/flowgmm-labels-for-yahoo/"
+    with open(dat_p + 'de_flowgmm_labels.pkl', 'rb') as f:
+        de_flowgmm_lbls = pickle.load(f)
+    with open(dat_p + 'ru_flowgmm_labels.pkl', 'rb') as f:
+        ru_flowgmm_lbls = pickle.load(f)
+    with open(dat_p + 'ori_flowgmm_labels.pkl', 'rb') as f:
+        ori_flowgmm_lbls = pickle.load(f)
+
+    # Read dataset and build dataloaders
+    train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
+        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug)
+    labeled_trainloader = Data.DataLoader(
+        dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
+    unlabeled_trainloader = Data.DataLoader(
+        dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+    val_loader = Data.DataLoader(
+        dataset=val_set, batch_size=512, shuffle=False)
+    test_loader = Data.DataLoader(
+        dataset=test_set, batch_size=512, shuffle=False)
+
+    # Define the model, set the optimizer
+    model = MixText(n_labels, args.mix_option).cuda()
+    model = nn.DataParallel(model)
+
+    train_criterion = SemiLoss()
+    criterion = nn.CrossEntropyLoss()
+
+    test_accs = []
+
+    optimizer = AdamW(
+        [
+            {"params": model.module.bert.parameters(), "lr": args.lrmain},
+            {"params": model.module.linear.parameters(), "lr": args.lrlast},
+        ])
+    # Start training
+    for epoch in range(args.epochs):
+
+        train(labeled_trainloader, unlabeled_trainloader, model, optimizer, train_criterion, epoch, n_labels)
+
+        val_loss, val_acc = validate(
+            val_loader, model, criterion, epoch, mode='Valid Stats')
+
+        print("epoch {}, val acc {}, val_loss {}".format(
+            epoch, val_acc, val_loss))
+
+        if val_acc >= best_acc:
+            best_acc = val_acc
+            test_loss, test_acc = validate(
+                test_loader, model, criterion, epoch, mode='Test Stats ')
+            test_accs.append(test_acc)
+            print("epoch {}, test acc {},test loss {}".format(
+                epoch, test_acc, test_loss))
+
+        print('Epoch: ', epoch)
+
+        print('Best acc:')
+        print(best_acc)
+
+        print('Test acc:')
+        print(test_accs)
+
+    print("Finished training!")
+    print('Best acc:')
+    print(best_acc)
+
+    print('Test acc:')
+    print(test_accs)
