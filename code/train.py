@@ -474,14 +474,7 @@ def main():
     # Start training
     for epoch in range(args.epochs):
 
-        train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
-              scheduler, train_criterion, epoch, n_labels, args.train_aug)
-
-        # scheduler.step()
-
-        # _, train_acc = validate(labeled_trainloader,
-        #                        model,  criterion, epoch, mode='Train Stats')
-        #print("epoch {}, train acc {}".format(epoch, train_acc))
+        train(labeled_trainloader, unlabeled_trainloader, model, optimizer, train_criterion, epoch, n_labels)
 
         val_loss, val_acc = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
@@ -513,7 +506,7 @@ def main():
     print(test_accs)
 
 
-def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, criterion, epoch, n_labels, train_aug=False):
+def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterion, epoch, n_labels):
     labeled_train_iter = iter(labeled_trainloader)
     unlabeled_train_iter = iter(unlabeled_trainloader)
     model.train()
