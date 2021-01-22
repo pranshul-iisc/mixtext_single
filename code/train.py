@@ -533,20 +533,12 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         total_steps += 1
 
-        if not train_aug:
-            try:
+        try:
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-            except:
+        except:
                 labeled_train_iter = iter(labeled_trainloader)
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        else:
-            try:
-                (inputs_x, inputs_x_aug), (targets_x, _), (inputs_x_length,
-                                                           inputs_x_length_aug) = labeled_train_iter.next()
-            except:
-                labeled_train_iter = iter(labeled_trainloader)
-                (inputs_x, inputs_x_aug), (targets_x, _), (inputs_x_length,
-                                                           inputs_x_length_aug) = labeled_train_iter.next()
+
         try:
             (inputs_u, inputs_u2,  inputs_ori), (length_u,
                                                  length_u2,  length_ori), u_idxs = unlabeled_train_iter.next()
@@ -576,7 +568,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         for idx in u_idxs:
             print(idx.item())
-        print("LAbels", len(de_flowgmm_lbls),de_flowgmm_lbls[420562], out_u)
+        print("Labels", len(de_flowgmm_lbls),de_flowgmm_lbls[420562], out_u)
         mask = []
 
         with torch.no_grad():
@@ -630,24 +622,15 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         mix_layer = np.random.choice(args.mix_layers_set, 1)[0]
         mix_layer = mix_layer - 1
 
-        if not train_aug:
-            all_inputs = torch.cat(
+        all_inputs = torch.cat(
                 [inputs_x, inputs_u, inputs_u2, inputs_ori, inputs_ori], dim=0)
 
-            all_lengths = torch.cat(
+        all_lengths = torch.cat(
                 [inputs_x_length, length_u, length_u2, length_ori, length_ori], dim=0)
 
-            all_targets = torch.cat(
+        all_targets = torch.cat(
                 [targets_x, targets_u, targets_u, targets_u, targets_u], dim=0)
-        """
-        else:
-            all_inputs = torch.cat(
-                [inputs_x, inputs_x_aug, inputs_u, inputs_u2, inputs_ori], dim=0)
-            all_lengths = torch.cat(
-                [inputs_x_length, inputs_x_length, length_u, length_u2, length_ori], dim=0)
-            all_targets = torch.cat(
-                [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
-        """
+
         print("all inputs size:",all_inputs.shape,all_lengths.shape,all_targets.shape)
 
         if args.separate_mix:
