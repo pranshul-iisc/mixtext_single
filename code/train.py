@@ -581,13 +581,23 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         with torch.no_grad():
             # Predict labels for unlabeled data.
-            outputs_u = model(inputs_u)
-            outputs_u2 = model(inputs_u2)
-            outputs_ori = model(inputs_ori)
-            print("output:",type(outputs_u), outputs_u.shape, outputs_u)
+            #outputs_u = model(inputs_u)
+            #outputs_u2 = model(inputs_u2)
+            #outputs_ori = model(inputs_ori)
+            #print("output:",type(outputs_u), outputs_u.shape, outputs_u)
             outputs = [[(1 if j ==i else 0) for j in range(10)] for i in out_u]
             outputs = torch.FloatTensor(outputs)
-            print("output2:", type(outputs), outputs.shape, outputs)
+            print("output u:",outputs)
+            outputs_u = outputs.cuda()
+
+            outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_u2]
+            outputs = torch.FloatTensor(outputs)
+            print("output u2:",outputs)
+            outputs_u = outputs.cuda()
+
+            outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_ori]
+            outputs = torch.FloatTensor(outputs)
+            print("output ori:",outputs)
             outputs_u = outputs.cuda()
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
