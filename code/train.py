@@ -639,7 +639,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
             all_targets = torch.cat(
                 [targets_x, targets_u, targets_u, targets_u, targets_u], dim=0)
-
+        """
         else:
             all_inputs = torch.cat(
                 [inputs_x, inputs_x_aug, inputs_u, inputs_u2, inputs_ori], dim=0)
@@ -647,7 +647,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                 [inputs_x_length, inputs_x_length, length_u, length_u2, length_ori], dim=0)
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
-
+        """
         print("all inputs size:",all_inputs.shape,all_lengths.shape,all_targets.shape)
 
         if args.separate_mix:
