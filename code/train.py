@@ -588,12 +588,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             outputs = [[(1 if j ==i else 0) for j in range(10)] for i in out_u]
             outputs = torch.FloatTensor(outputs)
             print("output2:", type(outputs), outputs.shape, outputs)
+            #outputs_u = outputs
             # Based on translation qualities, choose different weights here.
             # For AG News: German: 1, Russian: 0, ori: 1
             # For DBPedia: German: 1, Russian: 1, ori: 1
             # For IMDB: German: 0, Russian: 0, ori: 1
             # For Yahoo Answers: German: 1, Russian: 0, ori: 1 / German: 0, Russian: 0, ori: 1
-            p = (0 * torch.softmax(outputs_u, dim=1) + 0 * torch.softmax(outputs_u2,
+            p = (1 * torch.softmax(outputs_u, dim=1) + 0 * torch.softmax(outputs_u2,
                                                                          dim=1) + 1 * torch.softmax(outputs_ori, dim=1)) / (1)
             # Do a sharpen here.
             pt = p**(1/args.T)
