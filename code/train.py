@@ -454,23 +454,18 @@ def main():
     # Define the model, set the optimizer
     model = MixText(n_labels, args.mix_option).cuda()
     model = nn.DataParallel(model)
-    optimizer = AdamW(
-        [
-            {"params": model.module.bert.parameters(), "lr": args.lrmain},
-            {"params": model.module.linear.parameters(), "lr": args.lrlast},
-        ])
 
-    num_warmup_steps = math.floor(50)
-    num_total_steps = args.val_iteration
-
-    scheduler = None
-    #WarmupConstantSchedule(optimizer, warmup_steps=num_warmup_steps)
 
     train_criterion = SemiLoss()
     criterion = nn.CrossEntropyLoss()
 
     test_accs = []
 
+    optimizer = AdamW(
+        [
+            {"params": model.module.bert.parameters(), "lr": args.lrmain},
+            {"params": model.module.linear.parameters(), "lr": args.lrlast},
+        ])
     # Start training
     for epoch in range(args.epochs):
 
