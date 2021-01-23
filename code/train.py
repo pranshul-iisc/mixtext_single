@@ -606,8 +606,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
                 l = max(l, 1-l)
         else:
             l = 1
-
-        mix_layer = np.random.choice(args.mix_layers_set, 1)[0]
+        mixl = [7,9,12]
+        mix_layer = np.random.choice(mixl, 1)[0]
         mix_layer = mix_layer - 1
 
         all_inputs = torch.cat(
