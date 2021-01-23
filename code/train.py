@@ -391,7 +391,7 @@ parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
                     help='path to data folders')
 
 parser.add_argument('--mix-layers-set', nargs='+',
-                    default=[0, 1, 2, 3], type=int, help='define mix layer set')
+                    default=[7,9,12], type=int, help='define mix layer set')
 
 parser.add_argument('--alpha', default=0.75, type=float,
                     help='alpha for beta distribution')
