@@ -377,8 +377,6 @@ parser.add_argument('--separate-mix', default=False, type=bool, metavar='N',
                     help='mix separate from labeled data and unlabeled data')
 parser.add_argument('--co', default=False, type=bool, metavar='N',
                     help='set a random choice between mix and unmix during training')
-parser.add_argument('--train_aug', default=False, type=bool, metavar='N',
-                    help='augment labeled training data')
 
 
 parser.add_argument('--model', type=str, default='bert-base-uncased',
@@ -387,23 +385,10 @@ parser.add_argument('--model', type=str, default='bert-base-uncased',
 parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
                     help='path to data folders')
 
-parser.add_argument('--mix-layers-set', nargs='+',
-                    default=[7,9,12], type=int, help='define mix layer set')
-
 parser.add_argument('--alpha', default=0.75, type=float,
                     help='alpha for beta distribution')
 
-parser.add_argument('--lambda-u', default=1, type=float,
-                    help='weight for consistency loss term of unlabeled data')
-parser.add_argument('--T', default=0.5, type=float,
-                    help='temperature for sharpen function')
 
-parser.add_argument('--temp-change', default=1000000, type=int)
-
-parser.add_argument('--margin', default=0.7, type=float, metavar='N',
-                    help='margin for hinge loss')
-parser.add_argument('--lambda-u-hinge', default=0, type=float,
-                    help='weight for hinge loss term of unlabeled data')
 
 args = parser.parse_args()
 
@@ -416,7 +401,6 @@ print("GPU num: ", n_gpu)
 best_acc = 0
 total_steps = 0
 flag = 0
-print("Mix layers sets: ", args.mix_layers_set)
 
 de_flowgmm_lbls ={}
 ru_flowgmm_lbls ={}
@@ -437,7 +421,7 @@ def main():
 
     # Read dataset and build dataloaders
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
-        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug)
+        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=False)
     labeled_trainloader = Data.DataLoader(
         dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
     unlabeled_trainloader = Data.DataLoader(
@@ -508,11 +492,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
     global total_steps
     global flag
-    if flag == 0 and total_steps > args.temp_change:
-        print('Change T!')
-        args.T = 0.9
+    if flag == 0 and total_steps > 1000000:
+        T = 0.9
         flag = 1
-
+    else:
+        T =0.5
     for batch_idx in tqdm(range(args.val_iteration)):
 
         total_steps += 1
@@ -521,7 +505,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         (inputs_u, inputs_u2, inputs_ori), (length_u,
                                             length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
-        
+
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
@@ -574,7 +558,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
             p = (1 * torch.softmax(outputs_u, dim=1) + 0 * torch.softmax(outputs_u2,
                                                                          dim=1) + 1 * torch.softmax(outputs_ori, dim=1)) / (1)
             # Do a sharpen here.
-            pt = p**(1/args.T)
+            pt = p**(1/T)
             targets_u = pt / pt.sum(dim=1, keepdim=True)
             targets_u = targets_u.detach()
 
@@ -679,9 +663,9 @@ class SemiLoss(object):
             Lu = F.kl_div(probs_u.log(), targets_u, None, None, 'batchmean')
 
             Lu2 = torch.mean(torch.clamp(torch.sum(-F.softmax(outputs_u, dim=1)
-                                                   * F.log_softmax(outputs_u, dim=1), dim=1) - args.margin, min=0))
+                                                   * F.log_softmax(outputs_u, dim=1), dim=1) - 0.7, min=0))
 
-            return Lx, Lu, args.lambda_u * linear_rampup(epoch), Lu2, args.lambda_u_hinge * linear_rampup(epoch)
+            return Lx, Lu, linear_rampup(epoch), Lu2, linear_rampup(epoch)
 
 
 if __name__ == '__main__':
