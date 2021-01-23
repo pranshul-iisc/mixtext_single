@@ -523,10 +523,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         try:
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        except:
+        """except:
                 labeled_train_iter = iter(labeled_trainloader)
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-
+        """
         try:
             (inputs_u, inputs_u2,  inputs_ori), (length_u,
                                                  length_u2,  length_ori), u_idxs = unlabeled_train_iter.next()
