@@ -419,7 +419,7 @@ print("GPU num: ", n_gpu)
 best_acc = 0
 total_steps = 0
 flag = 0
-print('Whether mix: ', args.mix_option)
+print('Whether mix: ', True)
 print("Mix layers sets: ", args.mix_layers_set)
 
 de_flowgmm_lbls ={}
@@ -452,7 +452,7 @@ def main():
         dataset=test_set, batch_size=512, shuffle=False)
 
     # Define the model, set the optimizer
-    model = MixText(n_labels, args.mix_option).cuda()
+    model = MixText(n_labels, True).cuda()
     model = nn.DataParallel(model)
 
 
@@ -638,59 +638,9 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
         length_a, length_b = all_lengths, all_lengths[idx]
         print("input a,b",input_a.shape,input_b.shape)
 
-        if args.mix_method == 0:
-            # Mix sentences' hidden representations
-            logits = model(input_a, input_b, l, mix_layer)
-            mixed_target = l * target_a + (1 - l) * target_b
 
-        elif args.mix_method == 1:
-            # Concat snippet of two training sentences, the snippets are selected based on l
-            # For example: "I lova you so much" and "He likes NLP" could be mixed as "He likes NLP so much".
-            # The corresponding labels are mixed with coefficient as well
-            mixed_input = []
-            if l != 1:
-                for i in range(input_a.size(0)):
-                    length1 = math.floor(int(length_a[i]) * l)
-                    idx1 = torch.randperm(int(length_a[i]) - length1 + 1)[0]
-                    length2 = math.ceil(int(length_b[i]) * (1-l))
-                    if length1 + length2 > 256:
-                        length2 = 256-length1 - 1
-                    idx2 = torch.randperm(int(length_b[i]) - length2 + 1)[0]
-                    try:
-                        mixed_input.append(
-                            torch.cat((input_a[i][idx1: idx1 + length1], torch.tensor([102]).cuda(), input_b[i][idx2:idx2 + length2], torch.tensor([0]*(256-1-length1-length2)).cuda()), dim=0).unsqueeze(0))
-                    except:
-                        print(256 - 1 - length1 - length2,
-                              idx2, length2, idx1, length1)
-
-                mixed_input = torch.cat(mixed_input, dim=0)
-
-            else:
-                mixed_input = input_a
-
-            logits = model(mixed_input)
-            mixed_target = l * target_a + (1 - l) * target_b
-
-        elif args.mix_method == 2:
-            # Concat two training sentences
-            # The corresponding labels are averaged
-            if l == 1:
-                mixed_input = []
-                for i in range(input_a.size(0)):
-                    mixed_input.append(
-                        torch.cat((input_a[i][:length_a[i]], torch.tensor([102]).cuda(), input_b[i][:length_b[i]], torch.tensor([0]*(512-1-int(length_a[i])-int(length_b[i]))).cuda()), dim=0).unsqueeze(0))
-
-                mixed_input = torch.cat(mixed_input, dim=0)
-                logits = model(mixed_input, sent_size=512)
-
-                #mixed_target = torch.clamp(target_a + target_b, max = 1)
-                mixed = 0
-                mixed_target = (target_a + target_b)/2
-            else:
-                mixed_input = input_a
-                mixed_target = target_a
-                logits = model(mixed_input, sent_size=256)
-                mixed = 1
+        logits = model(input_a, input_b, l, mix_layer)
+        mixed_target = l * target_a + (1 - l) * target_b
 
         Lx, Lu, w, Lu2, w2 = criterion(logits[:batch_size], mixed_target[:batch_size], logits[batch_size:-batch_size_2],
                                        mixed_target[batch_size:-batch_size_2], logits[-batch_size_2:], epoch+batch_idx/args.val_iteration, mixed)
@@ -754,8 +704,6 @@ def linear_rampup(current, rampup_length=args.epochs):
 class SemiLoss(object):
     def __call__(self, outputs_x, targets_x, outputs_u, targets_u, outputs_u_2, epoch, mixed=1):
 
-        if args.mix_method == 0 or args.mix_method == 1:
-
             Lx = - \
                 torch.mean(torch.sum(F.log_softmax(
                     outputs_x, dim=1) * targets_x, dim=1))
@@ -767,32 +715,7 @@ class SemiLoss(object):
             Lu2 = torch.mean(torch.clamp(torch.sum(-F.softmax(outputs_u, dim=1)
                                                    * F.log_softmax(outputs_u, dim=1), dim=1) - args.margin, min=0))
 
-        elif args.mix_method == 2:
-            if mixed == 0:
-                Lx = - \
-                    torch.mean(torch.sum(F.logsigmoid(
-                        outputs_x) * targets_x, dim=1))
-
-                probs_u = torch.softmax(outputs_u, dim=1)
-
-                Lu = F.kl_div(probs_u.log(), targets_u,
-                              None, None, 'batchmean')
-
-                Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
-                    F.softmax(outputs_u_2, dim=1) * F.softmax(outputs_u_2, dim=1), dim=1), min=0))
-            else:
-                Lx = - \
-                    torch.mean(torch.sum(F.log_softmax(
-                        outputs_x, dim=1) * targets_x, dim=1))
-
-                probs_u = torch.softmax(outputs_u, dim=1)
-                Lu = F.kl_div(probs_u.log(), targets_u,
-                              None, None, 'batchmean')
-
-                Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
-                    F.softmax(outputs_u, dim=1) * F.softmax(outputs_u, dim=1), dim=1), min=0))
-
-        return Lx, Lu, args.lambda_u * linear_rampup(epoch), Lu2, args.lambda_u_hinge * linear_rampup(epoch)
+            return Lx, Lu, args.lambda_u * linear_rampup(epoch), Lu2, args.lambda_u_hinge * linear_rampup(epoch)
 
 
 if __name__ == '__main__':
