@@ -518,24 +518,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
         total_steps += 1
 
         inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        """
-        try:
-                inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        except:
-                labeled_train_iter = iter(labeled_trainloader)
-                inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        """
+
         (inputs_u, inputs_u2, inputs_ori), (length_u,
                                             length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
-        """
-        try:
-            (inputs_u, inputs_u2,  inputs_ori), (length_u,
-                                                 length_u2,  length_ori), u_idxs = unlabeled_train_iter.next()
-        except:
-            unlabeled_train_iter = iter(unlabeled_trainloader)
-            (inputs_u, inputs_u2, inputs_ori), (length_u,
-                                                length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
-        """
+        
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
@@ -594,16 +580,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         mixed = 1
 
-        mix_ = 1
-
-        if mix_ == 1:
-            l = np.random.beta(args.alpha, args.alpha)
-            if args.separate_mix:
-                l = l
-            else:
-                l = max(l, 1-l)
-        else:
-            l = 1
+        l = np.random.beta(args.alpha, args.alpha)
+        l = max(l, 1-l)
         mixl = [7,9,12]
         mix_layer = np.random.choice(mixl, 1)[0]
         mix_layer = mix_layer - 1
@@ -619,17 +597,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         print("all inputs size:",all_inputs.shape,all_lengths.shape,all_targets.shape)
 
-        if args.separate_mix:
-            idx1 = torch.randperm(batch_size)
-            idx2 = torch.randperm(all_inputs.size(0) - batch_size) + batch_size
-            idx = torch.cat([idx1, idx2], dim=0)
-            print("if run")
+        idx1 = torch.randperm(all_inputs.size(0) - batch_size_2)
+        idx2 = torch.arange(batch_size_2) + all_inputs.size(0) - batch_size_2
+        idx = torch.cat([idx1, idx2], dim=0)
 
-        else:
-            idx1 = torch.randperm(all_inputs.size(0) - batch_size_2)
-            idx2 = torch.arange(batch_size_2) + \
-                all_inputs.size(0) - batch_size_2
-            idx = torch.cat([idx1, idx2], dim=0)
         print("Indexes  are",idx1,idx2,idx)
         input_a, input_b = all_inputs, all_inputs[idx]
         target_a, target_b = all_targets, all_targets[idx]
@@ -643,10 +614,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
         Lx, Lu, w, Lu2, w2 = criterion(logits[:batch_size], mixed_target[:batch_size], logits[batch_size:-batch_size_2],
                                        mixed_target[batch_size:-batch_size_2], logits[-batch_size_2:], epoch+batch_idx/args.val_iteration, mixed)
 
-        if mix_ == 1:
-            loss = Lx + w * Lu
-        else:
-            loss = Lx + w * Lu + w2 * Lu2
+        loss = Lx + w * Lu
 
         #max_grad_norm = 1.0
         #torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
