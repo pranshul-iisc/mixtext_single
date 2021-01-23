@@ -372,10 +372,7 @@ parser.add_argument('--val-iteration', type=int, default=200,
                     help='number of labeled data')
 
 
-parser.add_argument('--mix-option', default=True, type=bool, metavar='N',
-                    help='mix option, whether to mix or not')
-parser.add_argument('--mix-method', default=0, type=int, metavar='N',
-                    help='mix method, set different mix method')
+
 parser.add_argument('--separate-mix', default=False, type=bool, metavar='N',
                     help='mix separate from labeled data and unlabeled data')
 parser.add_argument('--co', default=False, type=bool, metavar='N',
@@ -419,7 +416,6 @@ print("GPU num: ", n_gpu)
 best_acc = 0
 total_steps = 0
 flag = 0
-print('Whether mix: ', True)
 print("Mix layers sets: ", args.mix_layers_set)
 
 de_flowgmm_lbls ={}
@@ -598,10 +594,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         mixed = 1
 
-        if args.co:
-            mix_ = np.random.choice([0, 1], 1)[0]
-        else:
-            mix_ = 1
+        mix_ = 1
 
         if mix_ == 1:
             l = np.random.beta(args.alpha, args.alpha)
