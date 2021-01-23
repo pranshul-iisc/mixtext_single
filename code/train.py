@@ -410,7 +410,7 @@ parser.add_argument('--lambda-u-hinge', default=0, type=float,
 
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
