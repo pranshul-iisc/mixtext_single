@@ -251,7 +251,6 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     np.random.shuffle(train_unlabeled_idxs)
     np.random.shuffle(val_idxs)
 
-    # Build the dataset class for each set
     train_labeled_dataset = loader_labeled(
         train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len)
     train_unlabeled_dataset = loader_unlabeled(
@@ -267,7 +266,6 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
 
 class loader_labeled(Dataset):
-    # Data loader for labeled data
     def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len):
         self.tokenizer = tokenizer
         self.text = dataset_text
@@ -359,28 +357,12 @@ parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=fl
 parser.add_argument('--lrlast', '--learning-rate-model', default=0.001, type=float,
                     metavar='LR', help='initial learning rate for models')
 
-parser.add_argument('--gpu', default='0,1,2,3', type=str,
-                    help='id(s) for CUDA_VISIBLE_DEVICES')
-
 parser.add_argument('--n-labeled', type=int, default=20,
                     help='number of labeled data')
-
 parser.add_argument('--un-labeled', default=5000, type=int,
                     help='number of unlabeled data')
-
 parser.add_argument('--val-iteration', type=int, default=200,
                     help='number of labeled data')
-
-
-
-parser.add_argument('--separate-mix', default=False, type=bool, metavar='N',
-                    help='mix separate from labeled data and unlabeled data')
-parser.add_argument('--co', default=False, type=bool, metavar='N',
-                    help='set a random choice between mix and unmix during training')
-
-
-parser.add_argument('--model', type=str, default='bert-base-uncased',
-                    help='pretrained model')
 
 parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
                     help='path to data folders')
@@ -421,7 +403,7 @@ def main():
 
     # Read dataset and build dataloaders
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
-        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=False)
+        args.data_path, args.n_labeled, args.un_labeled, model=bert-base-uncased, train_aug=False)
     labeled_trainloader = Data.DataLoader(
         dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
     unlabeled_trainloader = Data.DataLoader(
@@ -550,14 +532,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
             outputs = torch.FloatTensor(outputs)
             print("output ori:",outputs)
             outputs_ori = outputs.cuda()
-            # Based on translation qualities, choose different weights here.
-            # For AG News: German: 1, Russian: 0, ori: 1
-            # For DBPedia: German: 1, Russian: 1, ori: 1
-            # For IMDB: German: 0, Russian: 0, ori: 1
-            # For Yahoo Answers: German: 1, Russian: 0, ori: 1 / German: 0, Russian: 0, ori: 1
-            p = (1 * torch.softmax(outputs_u, dim=1) + 0 * torch.softmax(outputs_u2,
-                                                                         dim=1) + 1 * torch.softmax(outputs_ori, dim=1)) / (1)
-            # Do a sharpen here.
+
+
+            p = (1 * torch.softmax(outputs_u, dim=1)
+                 + 0 * torch.softmax(outputs_u2,dim=1) + 1 * torch.softmax(outputs_ori, dim=1)) / 2
             pt = p**(1/T)
             targets_u = pt / pt.sum(dim=1, keepdim=True)
             targets_u = targets_u.detach()
