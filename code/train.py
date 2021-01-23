@@ -18,6 +18,174 @@ from transformers.modeling_bert import BertEmbeddings, BertPooler, BertLayer
 
 from tqdm import tqdm
 
+class Translator:
+
+    def __init__(self, path, transform_type='BackTranslation'):
+        with open(path + 'de_1.pkl', 'rb') as f:
+            self.de = pickle.load(f)
+        with open(path + 'ru_1.pkl', 'rb') as f:
+            self.ru = pickle.load(f)
+
+    def __call__(self, ori, idx):
+        if (idx in self.de):
+            out1 = self.de[idx]
+            out2 = self.ru[idx]
+            return out1, out2, ori
+        return ori, ori, ori
+
+def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256):
+
+    model = 'bert-base-uncased'
+    tokenizer = BertTokenizer.from_pretrained(model)
+    train_df = pd.read_csv(data_path+'train.csv', header=None)
+    test_df = pd.read_csv(data_path+'test.csv', header=None)
+
+    train_labels = np.array([train_df[0][i] - 1 for i in range(200000)])  # [v-1 for v in train_df[0]]
+    train_text = np.array([train_df[2][i] for i in range(200000)])  # ([v for v in train_df[2]])
+
+    test_labels = np.array([u-1 for u in test_df[0]])
+    test_text = np.array([v for v in test_df[2]])
+
+    n_labels = max(test_labels) + 1
+
+    np.random.seed(0)
+    labels = np.array(train_labels)
+    train_labeled_idxs = []
+    train_unlabeled_idxs = []
+    val_idxs = []
+
+    for i in range(n_labels):
+        idxs = np.where(labels == i)[0]
+        np.random.shuffle(idxs)
+        train_pool = idxs[5000:-5000]
+        train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
+        train_unlabeled_idxs.extend(
+            idxs[:5000])
+        val_idxs.extend(idxs[-5000:])
+    np.random.shuffle(train_labeled_idxs)
+    np.random.shuffle(train_unlabeled_idxs)
+    np.random.shuffle(val_idxs)
+
+    train_labeled_dataset = loader_labeled(
+        train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len)
+    train_unlabeled_dataset = loader_unlabeled(
+        train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Translator(data_path))
+    val_dataset = loader_labeled(
+        train_text[val_idxs], train_labels[val_idxs], tokenizer, max_seq_len)
+    test_dataset = loader_labeled(
+        test_text, test_labels, tokenizer, max_seq_len)
+
+    print("#Labeled: {}, Unlabeled {}, Val {}, Test {}".format(len(
+        train_labeled_idxs), len(train_unlabeled_idxs), len(val_idxs), len(test_labels)))
+
+    return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
+
+class loader_labeled(Dataset):
+    def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len):
+        self.tokenizer = tokenizer
+        self.text = dataset_text
+        self.labels = dataset_label
+        self.max_seq_len = max_seq_len
+        self.trans_dist = {}
+        self.aug = False
+
+    def __len__(self):
+        return len(self.labels)
+
+    def get_tokenized(self, text):
+        tokens = self.tokenizer.tokenize(text)
+        if len(tokens) > self.max_seq_len:
+            tokens = tokens[:self.max_seq_len]
+        length = len(tokens)
+
+        encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
+        padding = [0] * (self.max_seq_len - len(encode_result))
+        encode_result += padding
+
+        return encode_result, length
+
+    def __getitem__(self, idx):
+        if self.aug:
+            text = self.text[idx]
+            text_aug = self.augment(text)
+            text_result, text_length = self.get_tokenized(text)
+            text_result2, text_length2 = self.get_tokenized(text_aug)
+            return ((torch.tensor(text_result), torch.tensor(text_result2)), (self.labels[idx], self.labels[idx]), (text_length, text_length2))
+        else:
+            text = self.text[idx]
+            tokens = self.tokenizer.tokenize(text)
+            if len(tokens) > self.max_seq_len:
+                tokens = tokens[:self.max_seq_len]
+            length = len(tokens)
+            encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
+            padding = [0] * (self.max_seq_len - len(encode_result))
+            encode_result += padding
+            return (torch.tensor(encode_result), self.labels[idx], length)
+
+
+class loader_unlabeled(Dataset):
+    def __init__(self, dataset_text, unlabeled_idxs, tokenizer, max_seq_len, aug=None):
+        self.tokenizer = tokenizer
+        self.text = dataset_text
+        self.ids = unlabeled_idxs
+        self.aug = aug
+        self.max_seq_len = max_seq_len
+
+    def __len__(self):
+        return len(self.text)
+
+    def get_tokenized(self, text):
+        tokens = self.tokenizer.tokenize(text)
+        if len(tokens) > self.max_seq_len:
+            tokens = tokens[:self.max_seq_len]
+        length = len(tokens)
+        encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
+        padding = [0] * (self.max_seq_len - len(encode_result))
+        encode_result += padding
+        return encode_result, length
+
+    def __getitem__(self, idx):
+        if self.aug is not None:
+            u, v, ori = self.aug(self.text[idx], self.ids[idx])
+            encode_result_u, length_u = self.get_tokenized(u)
+            encode_result_v, length_v = self.get_tokenized(v)
+            encode_result_ori, length_ori = self.get_tokenized(ori)
+            return ((torch.tensor(encode_result_u), torch.tensor(encode_result_v), torch.tensor(encode_result_ori)), (length_u, length_v, length_ori),idx)
+        else:
+            text = self.text[idx]
+            encode_result, length = self.get_tokenized(text)
+            return (torch.tensor(encode_result), length)
+
+
+parser = argparse.ArgumentParser(description='PyTorch MixText')
+
+parser.add_argument('--epochs', default=50, type=int, metavar='N',
+                    help='number of total epochs to run')
+parser.add_argument('--batch-size', default=4, type=int, metavar='N',
+                    help='train batchsize')
+parser.add_argument('--batch-size-u', default=24, type=int, metavar='N',
+                    help='train batchsize')
+
+parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=float,
+                    metavar='LR', help='initial learning rate for bert')
+parser.add_argument('--lrlast', '--learning-rate-model', default=0.001, type=float,
+                    metavar='LR', help='initial learning rate for models')
+
+parser.add_argument('--n-labeled', type=int, default=20,
+                    help='number of labeled data')
+parser.add_argument('--un-labeled', default=5000, type=int,
+                    help='number of unlabeled data')
+parser.add_argument('--val-iteration', type=int, default=200,
+                    help='number of labeled data')
+
+parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
+                    help='path to data folders')
+
+parser.add_argument('--alpha', default=0.75, type=float,
+                    help='alpha for beta distribution')
+
+# BertModel4Mix BertModel4Mix MixText is taken from original code
+
 class BertModel4Mix(BertPreTrainedModel):
     def __init__(self, config):
         super(BertModel4Mix, self).__init__(config)
@@ -199,178 +367,6 @@ class MixText(nn.Module):
 
         return predict
 
-class Translator:
-    """Backtranslation. Here to save time, we pre-processing and save all the translated data into pickle files.
-    """
-
-    def __init__(self, path, transform_type='BackTranslation'):
-        # Pre-processed German data
-        with open(path + 'de_1.pkl', 'rb') as f:
-            self.de = pickle.load(f)
-        # Pre-processed Russian data
-        with open(path + 'ru_1.pkl', 'rb') as f:
-            self.ru = pickle.load(f)
-
-    def __call__(self, ori, idx):
-        if (idx in self.de):
-            out1 = self.de[idx]
-            out2 = self.ru[idx]
-            return out1, out2, ori
-        return ori, ori, ori
-
-def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256):
-    
-    model = 'bert-base-uncased'
-    tokenizer = BertTokenizer.from_pretrained(model)
-    train_df = pd.read_csv(data_path+'train.csv', header=None)
-    test_df = pd.read_csv(data_path+'test.csv', header=None)
-    # Here we only use the bodies and removed titles to do the classifications
-    train_labels = np.array([train_df[0][i] - 1 for i in range(200000)])  # [v-1 for v in train_df[0]]
-    train_text = np.array([train_df[2][i] for i in range(200000)])  # ([v for v in train_df[2]])
-
-    test_labels = np.array([u-1 for u in test_df[0]])
-    test_text = np.array([v for v in test_df[2]])
-
-    n_labels = max(test_labels) + 1
-
-    np.random.seed(0)
-    labels = np.array(train_labels)
-    train_labeled_idxs = []
-    train_unlabeled_idxs = []
-    val_idxs = []
-
-    for i in range(n_labels):
-        idxs = np.where(labels == i)[0]
-        np.random.shuffle(idxs)
-        train_pool = idxs[5000:-5000]
-        train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-        train_unlabeled_idxs.extend(
-            idxs[:5000])
-        val_idxs.extend(idxs[-5000:])
-    np.random.shuffle(train_labeled_idxs)
-    np.random.shuffle(train_unlabeled_idxs)
-    np.random.shuffle(val_idxs)
-
-    train_labeled_dataset = loader_labeled(
-        train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len)
-    train_unlabeled_dataset = loader_unlabeled(
-        train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Translator(data_path))
-    val_dataset = loader_labeled(
-        train_text[val_idxs], train_labels[val_idxs], tokenizer, max_seq_len)
-    test_dataset = loader_labeled(
-        test_text, test_labels, tokenizer, max_seq_len)
-
-    print("#Labeled: {}, Unlabeled {}, Val {}, Test {}".format(len(
-        train_labeled_idxs), len(train_unlabeled_idxs), len(val_idxs), len(test_labels)))
-
-    return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
-
-class loader_labeled(Dataset):
-    def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len):
-        self.tokenizer = tokenizer
-        self.text = dataset_text
-        self.labels = dataset_label
-        self.max_seq_len = max_seq_len
-        self.trans_dist = {}
-        self.aug = False
-
-    def __len__(self):
-        return len(self.labels)
-
-    def get_tokenized(self, text):
-        tokens = self.tokenizer.tokenize(text)
-        if len(tokens) > self.max_seq_len:
-            tokens = tokens[:self.max_seq_len]
-        length = len(tokens)
-
-        encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
-        padding = [0] * (self.max_seq_len - len(encode_result))
-        encode_result += padding
-
-        return encode_result, length
-
-    def __getitem__(self, idx):
-        if self.aug:
-            text = self.text[idx]
-            text_aug = self.augment(text)
-            text_result, text_length = self.get_tokenized(text)
-            text_result2, text_length2 = self.get_tokenized(text_aug)
-            return ((torch.tensor(text_result), torch.tensor(text_result2)), (self.labels[idx], self.labels[idx]), (text_length, text_length2))
-        else:
-            text = self.text[idx]
-            tokens = self.tokenizer.tokenize(text)
-            if len(tokens) > self.max_seq_len:
-                tokens = tokens[:self.max_seq_len]
-            length = len(tokens)
-            encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
-            padding = [0] * (self.max_seq_len - len(encode_result))
-            encode_result += padding
-            return (torch.tensor(encode_result), self.labels[idx], length)
-
-
-class loader_unlabeled(Dataset):
-    # Data loader for unlabeled data
-    def __init__(self, dataset_text, unlabeled_idxs, tokenizer, max_seq_len, aug=None):
-        self.tokenizer = tokenizer
-        self.text = dataset_text
-        self.ids = unlabeled_idxs
-        self.aug = aug
-        self.max_seq_len = max_seq_len
-
-    def __len__(self):
-        return len(self.text)
-
-    def get_tokenized(self, text):
-        tokens = self.tokenizer.tokenize(text)
-        if len(tokens) > self.max_seq_len:
-            tokens = tokens[:self.max_seq_len]
-        length = len(tokens)
-        encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
-        padding = [0] * (self.max_seq_len - len(encode_result))
-        encode_result += padding
-        return encode_result, length
-
-    def __getitem__(self, idx):
-        if self.aug is not None:
-            u, v, ori = self.aug(self.text[idx], self.ids[idx])
-            encode_result_u, length_u = self.get_tokenized(u)
-            encode_result_v, length_v = self.get_tokenized(v)
-            encode_result_ori, length_ori = self.get_tokenized(ori)
-            return ((torch.tensor(encode_result_u), torch.tensor(encode_result_v), torch.tensor(encode_result_ori)), (length_u, length_v, length_ori),idx)
-        else:
-            text = self.text[idx]
-            encode_result, length = self.get_tokenized(text)
-            return (torch.tensor(encode_result), length)
-
-
-parser = argparse.ArgumentParser(description='PyTorch MixText')
-
-parser.add_argument('--epochs', default=50, type=int, metavar='N',
-                    help='number of total epochs to run')
-parser.add_argument('--batch-size', default=4, type=int, metavar='N',
-                    help='train batchsize')
-parser.add_argument('--batch-size-u', default=24, type=int, metavar='N',
-                    help='train batchsize')
-
-parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=float,
-                    metavar='LR', help='initial learning rate for bert')
-parser.add_argument('--lrlast', '--learning-rate-model', default=0.001, type=float,
-                    metavar='LR', help='initial learning rate for models')
-
-parser.add_argument('--n-labeled', type=int, default=20,
-                    help='number of labeled data')
-parser.add_argument('--un-labeled', default=5000, type=int,
-                    help='number of unlabeled data')
-parser.add_argument('--val-iteration', type=int, default=200,
-                    help='number of labeled data')
-
-parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
-                    help='path to data folders')
-
-parser.add_argument('--alpha', default=0.75, type=float,
-                    help='alpha for beta distribution')
-
-
 
 args = parser.parse_args()
 
@@ -485,8 +481,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
 
-        (inputs_u, inputs_u2, inputs_ori), (length_u,
-                                            length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
+        (inputs_u, inputs_u2, inputs_ori), (length_u, length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
 
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
@@ -513,25 +508,26 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
         mask = []
 
         with torch.no_grad():
-            # Predict labels for unlabeled data.
-            #outputs_u = model(inputs_u)
-            #outputs_u2 = model(inputs_u2)
-            #outputs_ori = model(inputs_ori)
-            #print("output:",type(outputs_u), outputs_u.shape, outputs_u)
-            outputs = [[(1 if j ==i else 0) for j in range(10)] for i in out_u]
-            outputs = torch.FloatTensor(outputs)
-            print("output u:",outputs)
-            outputs_u = outputs.cuda()
+            if(False):
+                outputs_u = model(inputs_u)
+                outputs_u2 = model(inputs_u2)
+                outputs_ori = model(inputs_ori)
+                print("output:",type(outputs_u), outputs_u.shape, outputs_u)
+            else:
+                outputs = [[(1 if j ==i else 0) for j in range(10)] for i in out_u]
+                outputs = torch.FloatTensor(outputs)
+                print("output u:",outputs)
+                outputs_u = outputs.cuda()
 
-            outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_u2]
-            outputs = torch.FloatTensor(outputs)
-            print("output u2:",outputs)
-            outputs_u2 = outputs.cuda()
+                outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_u2]
+                outputs = torch.FloatTensor(outputs)
+                print("output u2:",outputs)
+                outputs_u2 = outputs.cuda()
 
-            outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_ori]
-            outputs = torch.FloatTensor(outputs)
-            print("output ori:",outputs)
-            outputs_ori = outputs.cuda()
+                outputs = [[(1 if j == i else 0) for j in range(10)] for i in out_ori]
+                outputs = torch.FloatTensor(outputs)
+                print("output ori:",outputs)
+                outputs_ori = outputs.cuda()
 
 
             p = (1 * torch.softmax(outputs_u, dim=1)
@@ -578,12 +574,9 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         loss = Lx + w * Lu
 
-        #max_grad_norm = 1.0
-        #torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # scheduler.step()
 
         if batch_idx % 1000 == 0:
             print("epoch {}, step {}, loss {}, Lx {}, Lu {}, Lu2 {}".format(
