@@ -218,12 +218,12 @@ class Translator:
             return out1, out2, ori
         return ori, ori, ori
 
-def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False):
+def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256):
 
     tokenizer = BertTokenizer.from_pretrained(model)
     train_df = pd.read_csv(data_path+'train.csv', header=None)
     test_df = pd.read_csv(data_path+'test.csv', header=None)
-
+    model = 'bert-base-uncased'
     # Here we only use the bodies and removed titles to do the classifications
     train_labels = np.array([train_df[0][i] - 1 for i in range(200000)])  # [v-1 for v in train_df[0]]
     train_text = np.array([train_df[2][i] for i in range(200000)])  # ([v for v in train_df[2]])
@@ -403,7 +403,7 @@ def main():
 
     # Read dataset and build dataloaders
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
-        args.data_path, args.n_labeled, args.un_labeled, model=bert-base-uncased, train_aug=False)
+        args.data_path, args.n_labeled, args.un_labeled, train_aug=False)
     labeled_trainloader = Data.DataLoader(
         dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
     unlabeled_trainloader = Data.DataLoader(
