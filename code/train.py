@@ -521,11 +521,16 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
 
         total_steps += 1
 
+        inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
+        """
         try:
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
-        """except:
+        except:
                 labeled_train_iter = iter(labeled_trainloader)
                 inputs_x, targets_x, inputs_x_length = labeled_train_iter.next()
+        """
+        (inputs_u, inputs_u2, inputs_ori), (length_u,
+                                            length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
         """
         try:
             (inputs_u, inputs_u2,  inputs_ori), (length_u,
@@ -534,7 +539,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterio
             unlabeled_train_iter = iter(unlabeled_trainloader)
             (inputs_u, inputs_u2, inputs_ori), (length_u,
                                                 length_u2, length_ori), u_idxs = unlabeled_train_iter.next()
-
+        """
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
